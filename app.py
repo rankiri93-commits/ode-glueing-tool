@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # --- Page Config ---
 st.set_page_config(page_title="מפעל הדבקת פתרונות", layout="wide")
 
-# --- Custom CSS (The Fix) ---
+# --- Custom CSS ---
 st.markdown("""
 <style>
     /* 1. Global RTL for the whole app (Hebrew) */
@@ -25,11 +25,9 @@ st.markdown("""
     }
     
     /* 4. THE FIX: Force all Math (KaTeX) to stay LTR and isolated */
-    /* This prevents "y=..." from flipping to "...=y" */
     .katex, .katex-display {
         direction: ltr !important;
         unicode-bidi: isolate !important;
-        text-align: center;
     }
     
     /* 5. Analysis Section: Align list bullets correctly */
@@ -43,10 +41,13 @@ st.markdown("""
 
 # --- Header Section ---
 st.title("🧩 מפעל הדבקת פתרונות")
-st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-# Main Equation (Isolated)
-st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
+# Updated Instructions Text
+st.markdown("""
+בממשק זה ניתן לבחור תנאי התחלה, ולהשתמש בצורות הפתרונות הכלליים על מנת לחפש פתרון למשוואה המקיים את תנאי ההתחלה.
+שימו לב לכך שהפתרונות צריכים להיות גזירים ובפרט רציפים בכל תחום הגדרתם.
+מומלץ להזיז את תנאי ההתחלה ולבדוק כיצד צורות הפתרונות האפשריים משתנות.
+""")
 
 # --- Session State ---
 if 'pieces' not in st.session_state:
@@ -55,7 +56,6 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# Radio Buttons (Pure Hebrew to avoid scrambling)
 radio_options = [
     "פתרון האפס",
     "ענף חיובי",
@@ -69,7 +69,6 @@ selected_label = st.sidebar.radio(
 
 # Logic to handle selection
 if selected_label == "פתרון האפס":
-    # Blue box with the formula (LTR forced)
     st.sidebar.info("נוסחה:")
     st.sidebar.latex(r"y = 0")
     
@@ -88,10 +87,8 @@ if selected_label == "פתרון האפס":
 
 elif selected_label == "ענף חיובי":
     st.sidebar.info("נוסחה (עבור 0 < x < x₀):")
-    # This latex was flipping. The CSS '.katex {direction: ltr}' fixes it.
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
-    # User chooses x0
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.5, min_value=0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
@@ -110,7 +107,6 @@ elif selected_label == "ענף שלילי":
     st.sidebar.info("נוסחה (עבור x₀ < x < 0):")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
-    # User chooses x0
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.5, max_value=-0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
@@ -135,7 +131,15 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
-    # High DPI for sharpness
+    # 1. ODE Equation - Centered ABOVE the graph
+    # We use HTML/Markdown to control size (h2) and centering
+    st.markdown(r"""
+    <div style="text-align: center; direction: ltr; margin-bottom: 10px;">
+        <h2>$$xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0$$</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 2. The Plot
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
 
     # Set fixed plotting window
@@ -146,11 +150,10 @@ with col_graph:
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.grid(True, alpha=0.3)
-    ax.set_title("Visualization of Selected Solutions")
+    # Removed title as requested: ax.set_title(...)
 
     # Plot valid pieces
     for piece in st.session_state.pieces:
-        # Wrap label in $...$ for Matplotlib LaTeX rendering
         plot_label = f"${piece['label']}$"
         
         if piece["type"] == "zero":
@@ -187,17 +190,12 @@ if len(st.session_state.pieces) > 0:
         label = p.get('label', "")
         
         # COLUMN LAYOUT FIX
-        # In RTL mode:
-        # col_text (Right) comes first
-        # col_math (Left) comes second
         col_text, col_math = st.columns([0.6, 0.4])
         
         with col_text:
-            # Align Hebrew text to the right
             st.markdown(f"**{i+1}. {desc} :**")
             
         with col_math:
-            # Render Math. CSS forces this block to be LTR.
             st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
