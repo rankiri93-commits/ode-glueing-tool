@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # --- Page Config ---
 st.set_page_config(page_title="מפעל הדבקת פתרונות", layout="wide")
 
-# --- Custom CSS (RTL + Wider Sidebar + Math Isolation) ---
+# --- Custom CSS (RTL + Wider Sidebar) ---
 st.markdown("""
 <style>
     /* 1. Global RTL for Hebrew */
@@ -19,23 +19,15 @@ st.markdown("""
         width: 450px !important;
     }
     
-    /* 3. CRITICAL FIX: Isolate Math (KaTeX) so it stays LTR */
-    .katex, .katex-display {
-        direction: ltr !important; 
-        unicode-bidi: isolate !important;
-        text-align: left;
-    }
-    
-    /* 4. Align standard text elements to the right */
+    /* 3. Align standard text elements to the right */
     h1, h2, h3, p, .stMarkdown, .stRadio, .stNumberInput, .stSelectbox {
         text-align: right;
     }
     
-    /* 5. Fix bullet points in lists */
-    ul {
-        direction: rtl;
-        text-align: right;
-        list-style-position: inside;
+    /* 4. Ensure Latex blocks are always LTR and Centered */
+    .stLatex {
+        direction: ltr;
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -44,12 +36,8 @@ st.markdown("""
 st.title("🧩 מפעל הדבקת פתרונות")
 st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-# Centered, Large Equation using HTML wrapper to force alignment and size
-st.markdown(r"""
-<div style="direction: ltr; text-align: center; margin-bottom: 20px;">
-    <h2>$$xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0$$</h2>
-</div>
-""", unsafe_allow_html=True)
+# Dedicated Latex Block (Automatically centered and LTR)
+st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
 
 
 # --- Session State ---
@@ -59,11 +47,11 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# Options cleaned up (removed the confusing domain comments)
+# Options CLEANED (Removed the extra conditions text)
 option_map = {
     "zero": r"פתרון האפס: $y=0$",
-    "pos": r"ענף חיובי ($x_0 > 0$): $y = x^2(x^3 - x_0^3)^2$",
-    "neg": r"ענף שלילי ($x_0 < 0$): $y = x^2(x^3 - x_0^3)^2$"
+    "pos": r"ענף חיובי: $y = x^2(x^3 - x_0^3)^2$",
+    "neg": r"ענף שלילי: $y = x^2(x^3 - x_0^3)^2$"
 }
 
 selection_label = st.sidebar.radio(
@@ -85,7 +73,7 @@ if solution_type == "zero":
             "type": "zero", 
             "range": [a, b], 
             "color": "black", 
-            "label": r"$y=0$",
+            "label": r"y=0",
             "desc": f"y=0 בטווח [{a}, {b}]"
         })
 
@@ -94,7 +82,8 @@ elif solution_type == "pos":
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.5, min_value=0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
-        label = fr"$y = x^2(x^3 - ({x0})^3)^2$"
+        # Explicit formula for the label
+        label = fr"y = x^2(x^3 - {x0}^3)^2"
         desc = f"ענף חיובי, x₀={x0}"
         st.session_state.pieces.append({
             "type": "pos", 
@@ -110,7 +99,7 @@ elif solution_type == "neg":
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.5, max_value=-0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
-        label = fr"$y = x^2(x^3 - ({x0})^3)^2$"
+        label = fr"y = x^2(x^3 - ({x0})^3)^2"
         desc = f"ענף שלילי, x₀={x0}"
         st.session_state.pieces.append({
             "type": "neg", 
@@ -148,19 +137,20 @@ with col_graph:
         if piece["type"] == "zero":
             x = np.linspace(piece["range"][0], piece["range"][1], 100)
             y = np.zeros_like(x)
-            ax.plot(x, y, color=piece["color"], linewidth=3, label=piece["label"])
+            # Use raw string for legend to avoid latex issues in matplotlib if needed
+            ax.plot(x, y, color=piece["color"], linewidth=3, label=f"${piece['label']}$")
             
         elif piece["type"] == "pos":
             # Plot only within [0, x0]
             x = np.linspace(0, piece["x0"], 100)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
-            ax.plot(x, y, color=piece["color"], linewidth=2, label=piece["label"])
+            ax.plot(x, y, color=piece["color"], linewidth=2, label=f"${piece['label']}$")
 
         elif piece["type"] == "neg":
             # Plot only within [x0, 0]
             x = np.linspace(piece["x0"], 0, 100)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
-            ax.plot(x, y, color=piece["color"], linewidth=2, label=piece["label"])
+            ax.plot(x, y, color=piece["color"], linewidth=2, label=f"${piece['label']}$")
 
     # Unique Legend
     handles, labels = plt.gca().get_legend_handles_labels()
@@ -180,15 +170,14 @@ if len(st.session_state.pieces) > 0:
         desc = p.get('desc', "מקטע")
         label = p.get('label', "")
         
-        # HTML Injection to force correct directionality: 
-        # Hebrew on Right, Bullet, Math on Left
-        st.markdown(
-            f"""
-            <div style="direction: rtl; text-align: right;">
-                • {desc} : &nbsp; <span style="direction: ltr; unicode-bidi: isolate;">{label}</span>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
+        # Use columns to physically separate Hebrew text from Math
+        # This prevents the "BiDi" algorithm from scrambling the order
+        c1, c2 = st.columns([0.85, 0.15]) 
+        
+        with c1:
+            st.markdown(f"**• {desc}** :")
+        with c2:
+            # Render the math label cleanly
+            st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
