@@ -42,7 +42,6 @@ st.markdown("""
 # --- Header Section ---
 st.title("🧩 מפעל הדבקת פתרונות")
 
-# Updated Instructions Text
 st.markdown("""
 בממשק זה ניתן לבחור תנאי התחלה, ולהשתמש בצורות הפתרונות הכלליים על מנת לחפש פתרון למשוואה המקיים את תנאי ההתחלה.
 שימו לב לכך שהפתרונות צריכים להיות גזירים ובפרט רציפים בכל תחום הגדרתם.
@@ -57,6 +56,7 @@ if 'pieces' not in st.session_state:
 st.sidebar.header("🛠️ ארגז כלים")
 
 radio_options = [
+    "תנאי התחלה (נקודה)",
     "פתרון האפס",
     "ענף חיובי",
     "ענף שלילי"
@@ -68,7 +68,24 @@ selected_label = st.sidebar.radio(
 )
 
 # Logic to handle selection
-if selected_label == "פתרון האפס":
+if selected_label == "תנאי התחלה (נקודה)":
+    st.sidebar.info("הוסף נקודה (x₀, y₀) לגרף:")
+    
+    col_pt1, col_pt2 = st.sidebar.columns(2)
+    x_pt = col_pt1.number_input("x₀", value=0.0, step=0.1)
+    y_pt = col_pt2.number_input("y₀", value=0.0, step=0.1)
+    
+    if st.sidebar.button("הוסף נקודה"):
+        st.session_state.pieces.append({
+            "type": "point",
+            "x": x_pt,
+            "y": y_pt,
+            "color": "green",
+            "label": f"({x_pt}, {y_pt})",
+            "desc": f"תנאי התחלה בנקודה ({x_pt}, {y_pt})"
+        })
+
+elif selected_label == "פתרון האפס":
     st.sidebar.info("נוסחה:")
     st.sidebar.latex(r"y = 0")
     
@@ -127,17 +144,16 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 
 # --- Plotting Logic ---
 
-# Layout: Graph on Left (75%), Empty Space on Right (25%)
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
-    # 1. ODE Equation - Centered ABOVE the graph
-    # We use HTML/Markdown to control size (h2) and centering
+    # 1. ODE Equation - Using pure Latex with large font scaling
+    # We avoid raw $$ inside Markdown to prevent the "code block" look
     st.markdown(r"""
-    <div style="text-align: center; direction: ltr; margin-bottom: 10px;">
-        <h2>$$xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0$$</h2>
-    </div>
+    <div style="text-align: center; direction: ltr; font-size: 1.5em; margin-bottom: 10px;">
     """, unsafe_allow_html=True)
+    st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # 2. The Plot
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
@@ -150,10 +166,16 @@ with col_graph:
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.grid(True, alpha=0.3)
-    # Removed title as requested: ax.set_title(...)
 
     # Plot valid pieces
     for piece in st.session_state.pieces:
+        
+        # Handle POINTS (New Feature)
+        if piece["type"] == "point":
+            ax.scatter([piece["x"]], [piece["y"]], color=piece["color"], s=100, zorder=10, label=f"Point {piece['label']}")
+            continue
+
+        # Handle CURVES
         plot_label = f"${piece['label']}$"
         
         if piece["type"] == "zero":
@@ -189,13 +211,15 @@ if len(st.session_state.pieces) > 0:
         desc = p.get('desc', "מקטע")
         label = p.get('label', "")
         
-        # COLUMN LAYOUT FIX
-        col_text, col_math = st.columns([0.6, 0.4])
-        
-        with col_text:
-            st.markdown(f"**{i+1}. {desc} :**")
-            
-        with col_math:
-            st.latex(label)
+        # Special handling for points (no math formula to display on left)
+        if p['type'] == 'point':
+            st.markdown(f"**{i+1}. {desc}**")
+        else:
+            # Column layout for equations
+            col_text, col_math = st.columns([0.6, 0.4])
+            with col_text:
+                st.markdown(f"**{i+1}. {desc} :**")
+            with col_math:
+                st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
