@@ -68,6 +68,8 @@ selected_label = st.sidebar.radio(
 )
 
 # Logic to handle selection
+
+# OPTION 1: INITIAL CONDITION (POINT)
 if selected_label == "תנאי התחלה (נקודה)":
     st.sidebar.info("הוסף נקודה (x₀, y₀) לגרף:")
     
@@ -85,6 +87,7 @@ if selected_label == "תנאי התחלה (נקודה)":
             "desc": f"תנאי התחלה בנקודה ({x_pt}, {y_pt})"
         })
 
+# OPTION 2: ZERO SOLUTION
 elif selected_label == "פתרון האפס":
     st.sidebar.info("נוסחה:")
     st.sidebar.latex(r"y = 0")
@@ -102,6 +105,7 @@ elif selected_label == "פתרון האפס":
             "desc": f"y=0 בטווח [{a}, {b}]"
         })
 
+# OPTION 3: POSITIVE BRANCH
 elif selected_label == "ענף חיובי":
     st.sidebar.info("נוסחה (עבור 0 < x < x₀):")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
@@ -120,6 +124,7 @@ elif selected_label == "ענף חיובי":
             "desc": desc
         })
 
+# OPTION 4: NEGATIVE BRANCH
 elif selected_label == "ענף שלילי":
     st.sidebar.info("נוסחה (עבור x₀ < x < 0):")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
@@ -147,13 +152,11 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
-    # 1. ODE Equation - Using pure Latex with large font scaling
-    # We avoid raw $$ inside Markdown to prevent the "code block" look
-    st.markdown(r"""
-    <div style="text-align: center; direction: ltr; font-size: 1.5em; margin-bottom: 10px;">
-    """, unsafe_allow_html=True)
-    st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # 1. ODE Equation - Centered Cleanly using Columns
+    # This prevents the raw $$ text from showing up
+    c1, c_eqn, c2 = st.columns([0.1, 0.8, 0.1])
+    with c_eqn:
+        st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
 
     # 2. The Plot
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
@@ -172,10 +175,12 @@ with col_graph:
         
         # Handle POINTS (New Feature)
         if piece["type"] == "point":
-            ax.scatter([piece["x"]], [piece["y"]], color=piece["color"], s=100, zorder=10, label=f"Point {piece['label']}")
+            # No math label for points in legend, just "Point"
+            ax.scatter([piece["x"]], [piece["y"]], color=piece["color"], s=100, zorder=10, label="Initial Condition")
             continue
 
         # Handle CURVES
+        # We manually wrap in $...$ for Matplotlib to render it as Math
         plot_label = f"${piece['label']}$"
         
         if piece["type"] == "zero":
