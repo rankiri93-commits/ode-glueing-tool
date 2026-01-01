@@ -105,12 +105,12 @@ elif selected_label == "פתרון האפס":
             "desc": f"y=0 בטווח [{a}, {b}]"
         })
 
-# OPTION 3: POSITIVE BRANCH
+# OPTION 3: POSITIVE BRANCH (Updated Logic x > x0)
 elif selected_label == "ענף חיובי":
-    st.sidebar.info("נוסחה (עבור 0 < x < x₀):")
-    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
+    st.sidebar.info("נוסחה:")
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2 \quad (x > x_0)")
     
-    x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.5, min_value=0.1, step=0.1)
+    x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.0, min_value=0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
         label = fr"y = x^2(x^3 - {x0}^3)^2"
@@ -118,18 +118,18 @@ elif selected_label == "ענף חיובי":
         st.session_state.pieces.append({
             "type": "pos", 
             "x0": x0, 
-            "range": [0, x0], 
+            "range": [x0, 2.5], # Plots from x0 to the right edge
             "color": "blue", 
             "label": label,
             "desc": desc
         })
 
-# OPTION 4: NEGATIVE BRANCH
+# OPTION 4: NEGATIVE BRANCH (Updated Logic x < x0)
 elif selected_label == "ענף שלילי":
-    st.sidebar.info("נוסחה (עבור x₀ < x < 0):")
-    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
+    st.sidebar.info("נוסחה:")
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2 \quad (x < x_0)")
     
-    x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.5, max_value=-0.1, step=0.1)
+    x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.0, max_value=-0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
         label = fr"y = x^2(x^3 - ({x0})^3)^2"
@@ -137,7 +137,7 @@ elif selected_label == "ענף שלילי":
         st.session_state.pieces.append({
             "type": "neg", 
             "x0": x0, 
-            "range": [x0, 0], 
+            "range": [-2.5, x0], # Plots from left edge to x0
             "color": "red", 
             "label": label,
             "desc": desc
@@ -152,8 +152,7 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
-    # 1. ODE Equation - Centered Cleanly using Columns
-    # This prevents the raw $$ text from showing up
+    # 1. ODE Equation - Cleanly Centered
     c1, c_eqn, c2 = st.columns([0.1, 0.8, 0.1])
     with c_eqn:
         st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
@@ -161,9 +160,11 @@ with col_graph:
     # 2. The Plot
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
 
-    # Set fixed plotting window
+    # Dynamic limits: We define a "view window" but allow Y to grow if needed
     ax.set_xlim(-2.5, 2.5)
-    ax.set_ylim(-0.5, 6) 
+    # Remove hardcoded set_ylim to allow auto-scaling for "Take Off" solutions
+    # ax.set_ylim(-0.5, 6) <--- REMOVED to fix visibility issues
+    
     ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
     ax.axvline(0, color='gray', linestyle='--', linewidth=0.8)
     ax.set_xlabel("x")
@@ -173,28 +174,28 @@ with col_graph:
     # Plot valid pieces
     for piece in st.session_state.pieces:
         
-        # Handle POINTS (New Feature)
+        # Handle POINTS
         if piece["type"] == "point":
-            # No math label for points in legend, just "Point"
             ax.scatter([piece["x"]], [piece["y"]], color=piece["color"], s=100, zorder=10, label="Initial Condition")
             continue
 
         # Handle CURVES
-        # We manually wrap in $...$ for Matplotlib to render it as Math
         plot_label = f"${piece['label']}$"
         
         if piece["type"] == "zero":
-            x = np.linspace(piece["range"][0], piece["range"][1], 100)
+            x = np.linspace(piece["range"][0], piece["range"][1], 200)
             y = np.zeros_like(x)
             ax.plot(x, y, color=piece["color"], linewidth=3, label=plot_label)
             
         elif piece["type"] == "pos":
-            x = np.linspace(0, piece["x0"], 100)
+            # Plot from x0 to a reasonable max (e.g., 2.5)
+            x = np.linspace(piece["x0"], 2.5, 200)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
             ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
 
         elif piece["type"] == "neg":
-            x = np.linspace(piece["x0"], 0, 100)
+            # Plot from reasonable min (e.g., -2.5) to x0
+            x = np.linspace(-2.5, piece["x0"], 200)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
             ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
 
@@ -216,7 +217,6 @@ if len(st.session_state.pieces) > 0:
         desc = p.get('desc', "מקטע")
         label = p.get('label', "")
         
-        # Special handling for points (no math formula to display on left)
         if p['type'] == 'point':
             st.markdown(f"**{i+1}. {desc}**")
         else:
