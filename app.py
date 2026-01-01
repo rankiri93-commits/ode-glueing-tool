@@ -5,26 +5,26 @@ import matplotlib.pyplot as plt
 # --- Page Config ---
 st.set_page_config(page_title="מפעל הדבקת פתרונות", layout="wide")
 
-# --- Custom CSS (RTL + Wider Sidebar) ---
+# --- Custom CSS ---
 st.markdown("""
 <style>
-    /* 1. Global RTL for Hebrew */
+    /* Global RTL for Hebrew */
     .stApp {
         direction: rtl;
         text-align: right;
     }
     
-    /* 2. Force Sidebar Width to be wide enough for formulas */
+    /* Force Sidebar Width */
     section[data-testid="stSidebar"] {
         width: 450px !important;
     }
     
-    /* 3. Align standard text elements to the right */
+    /* Align text right */
     h1, h2, h3, p, .stMarkdown, .stRadio, .stNumberInput, .stSelectbox {
         text-align: right;
     }
     
-    /* 4. Ensure Latex blocks are always LTR and Centered */
+    /* Ensure Latex is LTR */
     .stLatex {
         direction: ltr;
         text-align: center;
@@ -36,7 +36,7 @@ st.markdown("""
 st.title("🧩 מפעל הדבקת פתרונות")
 st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-# Dedicated Latex Block (Automatically centered and LTR)
+# Main Equation
 st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
 
 
@@ -47,23 +47,24 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# Options CLEANED (Removed the extra conditions text)
-option_map = {
-    "zero": r"פתרון האפס: $y=0$",
-    "pos": r"ענף חיובי: $y = x^2(x^3 - x_0^3)^2$",
-    "neg": r"ענף שלילי: $y = x^2(x^3 - x_0^3)^2$"
-}
+# FIX 1: Simplified Radio Labels (Hebrew Only) to prevent scrambling
+# We map the Hebrew label back to the internal key ('zero', 'pos', 'neg')
+radio_options = [
+    "פתרון האפס",
+    "ענף חיובי",
+    "ענף שלילי"
+]
 
-selection_label = st.sidebar.radio(
+selected_label = st.sidebar.radio(
     "בחר את צורת הפתרון:",
-    list(option_map.values())
+    radio_options
 )
 
-# Identify selected type
-solution_type = [k for k, v in option_map.items() if v == selection_label][0]
-
-# --- Input Logic ---
-if solution_type == "zero":
+# Logic to handle selection
+if selected_label == "פתרון האפס":
+    # Show the formula clearly BELOW the radio button
+    st.sidebar.latex(r"y = 0")
+    
     col1, col2 = st.sidebar.columns(2)
     b = col1.number_input("סוף (b)", value=2.0, step=0.1)
     a = col2.number_input("התחלה (a)", value=-2.0, step=0.1)
@@ -77,12 +78,13 @@ if solution_type == "zero":
             "desc": f"y=0 בטווח [{a}, {b}]"
         })
 
-elif solution_type == "pos":
-    # User chooses x0 (Must be positive)
+elif selected_label == "ענף חיובי":
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
+    
+    # User chooses x0
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.5, min_value=0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
-        # Explicit formula for the label
         label = fr"y = x^2(x^3 - {x0}^3)^2"
         desc = f"ענף חיובי, x₀={x0}"
         st.session_state.pieces.append({
@@ -94,8 +96,10 @@ elif solution_type == "pos":
             "desc": desc
         })
 
-elif solution_type == "neg":
-    # User chooses x0 (Must be negative)
+elif selected_label == "ענף שלילי":
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
+    
+    # User chooses x0
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.5, max_value=-0.1, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
@@ -116,7 +120,6 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 
 # --- Plotting Logic ---
 
-# Use columns to constrain width to ~75%
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
@@ -134,23 +137,23 @@ with col_graph:
 
     # Plot valid pieces
     for piece in st.session_state.pieces:
+        # Wrap label in $...$ for Matplotlib LaTeX rendering
+        plot_label = f"${piece['label']}$"
+        
         if piece["type"] == "zero":
             x = np.linspace(piece["range"][0], piece["range"][1], 100)
             y = np.zeros_like(x)
-            # Use raw string for legend to avoid latex issues in matplotlib if needed
-            ax.plot(x, y, color=piece["color"], linewidth=3, label=f"${piece['label']}$")
+            ax.plot(x, y, color=piece["color"], linewidth=3, label=plot_label)
             
         elif piece["type"] == "pos":
-            # Plot only within [0, x0]
             x = np.linspace(0, piece["x0"], 100)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
-            ax.plot(x, y, color=piece["color"], linewidth=2, label=f"${piece['label']}$")
+            ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
 
         elif piece["type"] == "neg":
-            # Plot only within [x0, 0]
             x = np.linspace(piece["x0"], 0, 100)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
-            ax.plot(x, y, color=piece["color"], linewidth=2, label=f"${piece['label']}$")
+            ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
 
     # Unique Legend
     handles, labels = plt.gca().get_legend_handles_labels()
@@ -166,18 +169,20 @@ st.markdown("### 🧐 ניתוח הפתרון שנבנה")
 
 if len(st.session_state.pieces) > 0:
     st.write("המקטעים שנבחרו כרגע:")
-    for p in st.session_state.pieces:
+    for i, p in enumerate(st.session_state.pieces):
         desc = p.get('desc', "מקטע")
         label = p.get('label', "")
         
-        # Use columns to physically separate Hebrew text from Math
-        # This prevents the "BiDi" algorithm from scrambling the order
-        c1, c2 = st.columns([0.85, 0.15]) 
+        # FIX 2: Use Columns to physically separate Hebrew text (Right) from Math (Left)
+        # This prevents them from mixing and reversing.
+        c_math, c_text = st.columns([0.5, 0.5])
         
-        with c1:
-            st.markdown(f"**• {desc}** :")
-        with c2:
-            # Render the math label cleanly
+        with c_text:
+            # Hebrew text on the right
+            st.markdown(f"**{i+1}. {desc}:**")
+            
+        with c_math:
+            # Math formula on the left (aligned right to meet the text)
             st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
