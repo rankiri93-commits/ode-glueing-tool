@@ -14,7 +14,7 @@ st.markdown("""
         text-align: right;
     }
     
-    /* 2. Force Sidebar Width (450px) */
+    /* 2. Force Sidebar Width to be wide enough for formulas */
     section[data-testid="stSidebar"] {
         width: 450px !important;
     }
@@ -40,15 +40,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Header Section (Separated to prevent text flipping) ---
-col_title, col_eq = st.columns([0.4, 0.6])
-with col_title:
-    st.title("🧩 מפעל הדבקת פתרונות")
-    st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
+# --- Header Section ---
+st.title("🧩 מפעל הדבקת פתרונות")
+st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-with col_eq:
-    # We display the equation in its own LTR block to ensure perfect rendering
-    st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
+# Centered, Large Equation using HTML wrapper to force alignment and size
+st.markdown(r"""
+<div style="direction: ltr; text-align: center; margin-bottom: 20px;">
+    <h2>$$xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0$$</h2>
+</div>
+""", unsafe_allow_html=True)
+
 
 # --- Session State ---
 if 'pieces' not in st.session_state:
@@ -57,12 +59,11 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# Options with EXPLICIT LaTeX formulas
-# Note: We use 'L' and 'R' to denote Left/Right branches relative to 0
+# Options cleaned up (removed the confusing domain comments)
 option_map = {
     "zero": r"פתרון האפס: $y=0$",
-    "pos": r"ענף חיובי ($x_0>0$): $y = x^2(x^3 - x_0^3)^2$  עבור $0 < x < x_0$",
-    "neg": r"ענף שלילי ($x_0<0$): $y = x^2(x^3 - x_0^3)^2$  עבור $x_0 < x < 0$"
+    "pos": r"ענף חיובי ($x_0 > 0$): $y = x^2(x^3 - x_0^3)^2$",
+    "neg": r"ענף שלילי ($x_0 < 0$): $y = x^2(x^3 - x_0^3)^2$"
 }
 
 selection_label = st.sidebar.radio(
@@ -73,7 +74,7 @@ selection_label = st.sidebar.radio(
 # Identify selected type
 solution_type = [k for k, v in option_map.items() if v == selection_label][0]
 
-# --- Input Logic (Updated to new intervals) ---
+# --- Input Logic ---
 if solution_type == "zero":
     col1, col2 = st.sidebar.columns(2)
     b = col1.number_input("סוף (b)", value=2.0, step=0.1)
@@ -98,7 +99,7 @@ elif solution_type == "pos":
         st.session_state.pieces.append({
             "type": "pos", 
             "x0": x0, 
-            "range": [0, x0], # New logic: Defined between 0 and x0
+            "range": [0, x0], 
             "color": "blue", 
             "label": label,
             "desc": desc
@@ -114,7 +115,7 @@ elif solution_type == "neg":
         st.session_state.pieces.append({
             "type": "neg", 
             "x0": x0, 
-            "range": [x0, 0], # New logic: Defined between x0 and 0
+            "range": [x0, 0], 
             "color": "red", 
             "label": label,
             "desc": desc
@@ -126,7 +127,7 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 
 # --- Plotting Logic ---
 
-# Use columns to constrain width to ~75% (0.75 for graph, 0.25 empty)
+# Use columns to constrain width to ~75%
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
@@ -134,7 +135,7 @@ with col_graph:
 
     # Set fixed plotting window
     ax.set_xlim(-2.5, 2.5)
-    ax.set_ylim(-0.5, 6) # Adjusted Y-limit slightly to fit the "bump"
+    ax.set_ylim(-0.5, 6) 
     ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
     ax.axvline(0, color='gray', linestyle='--', linewidth=0.8)
     ax.set_xlabel("x")
@@ -180,7 +181,7 @@ if len(st.session_state.pieces) > 0:
         label = p.get('label', "")
         
         # HTML Injection to force correct directionality: 
-        # Hebrew on Right, Colon in middle, Math on Left (LTR)
+        # Hebrew on Right, Bullet, Math on Left
         st.markdown(
             f"""
             <div style="direction: rtl; text-align: right;">
