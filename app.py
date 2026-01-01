@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 # --- Page Config ---
 st.set_page_config(page_title="מפעל הדבקת פתרונות", layout="wide")
 
-# --- Custom CSS ---
+# --- Custom CSS (The Fix) ---
 st.markdown("""
 <style>
-    /* 1. Global RTL for Hebrew */
+    /* 1. Global RTL for the whole app (Hebrew) */
     .stApp {
         direction: rtl;
         text-align: right;
@@ -19,21 +19,24 @@ st.markdown("""
         width: 450px !important;
     }
     
-    /* 3. Align text right */
+    /* 3. General Text Alignment */
     h1, h2, h3, p, .stMarkdown, .stRadio, .stNumberInput, .stSelectbox {
         text-align: right;
     }
     
-    /* 4. Ensure Latex is strictly LTR */
-    .stLatex {
-        direction: ltr;
+    /* 4. THE FIX: Force all Math (KaTeX) to stay LTR and isolated */
+    /* This prevents "y=..." from flipping to "...=y" */
+    .katex, .katex-display {
+        direction: ltr !important;
+        unicode-bidi: isolate !important;
         text-align: center;
     }
     
-    /* 5. Fix List Bullets */
+    /* 5. Analysis Section: Align list bullets correctly */
     ul {
         direction: rtl;
         list-style-position: inside;
+        text-align: right;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -42,9 +45,8 @@ st.markdown("""
 st.title("🧩 מפעל הדבקת פתרונות")
 st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-# Main Equation (Isolated in st.latex so it never flips)
+# Main Equation (Isolated)
 st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
-
 
 # --- Session State ---
 if 'pieces' not in st.session_state:
@@ -53,7 +55,7 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# FIX 1: Pure Hebrew Radio Buttons (No math here to cause flipping)
+# Radio Buttons (Pure Hebrew to avoid scrambling)
 radio_options = [
     "פתרון האפס",
     "ענף חיובי",
@@ -67,7 +69,7 @@ selected_label = st.sidebar.radio(
 
 # Logic to handle selection
 if selected_label == "פתרון האפס":
-    # Show the formula clearly BELOW the radio button
+    # Blue box with the formula (LTR forced)
     st.sidebar.info("נוסחה:")
     st.sidebar.latex(r"y = 0")
     
@@ -86,6 +88,7 @@ if selected_label == "פתרון האפס":
 
 elif selected_label == "ענף חיובי":
     st.sidebar.info("נוסחה (עבור 0 < x < x₀):")
+    # This latex was flipping. The CSS '.katex {direction: ltr}' fixes it.
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
     # User chooses x0
@@ -128,9 +131,11 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 
 # --- Plotting Logic ---
 
+# Layout: Graph on Left (75%), Empty Space on Right (25%)
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
+    # High DPI for sharpness
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
 
     # Set fixed plotting window
@@ -181,16 +186,18 @@ if len(st.session_state.pieces) > 0:
         desc = p.get('desc', "מקטע")
         label = p.get('label', "")
         
-        # FIX 2: Use Columns to physically separate Hebrew text (Right) from Math (Left)
-        # This prevents them from mixing and reversing.
-        c_text, c_math = st.columns([0.6, 0.4])
+        # COLUMN LAYOUT FIX
+        # In RTL mode:
+        # col_text (Right) comes first
+        # col_math (Left) comes second
+        col_text, col_math = st.columns([0.6, 0.4])
         
-        with c_text:
-            # Hebrew text on the right
+        with col_text:
+            # Align Hebrew text to the right
             st.markdown(f"**{i+1}. {desc} :**")
             
-        with c_math:
-            # Math formula on the left (aligned LTR)
+        with col_math:
+            # Render Math. CSS forces this block to be LTR.
             st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
