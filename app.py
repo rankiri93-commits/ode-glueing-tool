@@ -8,26 +8,32 @@ st.set_page_config(page_title="מפעל הדבקת פתרונות", layout="wide
 # --- Custom CSS ---
 st.markdown("""
 <style>
-    /* Global RTL for Hebrew */
+    /* 1. Global RTL for Hebrew */
     .stApp {
         direction: rtl;
         text-align: right;
     }
     
-    /* Force Sidebar Width */
+    /* 2. Force Sidebar Width */
     section[data-testid="stSidebar"] {
         width: 450px !important;
     }
     
-    /* Align text right */
+    /* 3. Align text right */
     h1, h2, h3, p, .stMarkdown, .stRadio, .stNumberInput, .stSelectbox {
         text-align: right;
     }
     
-    /* Ensure Latex is LTR */
+    /* 4. Ensure Latex is strictly LTR */
     .stLatex {
         direction: ltr;
         text-align: center;
+    }
+    
+    /* 5. Fix List Bullets */
+    ul {
+        direction: rtl;
+        list-style-position: inside;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -36,7 +42,7 @@ st.markdown("""
 st.title("🧩 מפעל הדבקת פתרונות")
 st.markdown("**המטרה:** לבנות פתרון חוקי לבעיית ההתחלה:")
 
-# Main Equation
+# Main Equation (Isolated in st.latex so it never flips)
 st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
 
 
@@ -47,8 +53,7 @@ if 'pieces' not in st.session_state:
 # --- Sidebar: The Toolbox ---
 st.sidebar.header("🛠️ ארגז כלים")
 
-# FIX 1: Simplified Radio Labels (Hebrew Only) to prevent scrambling
-# We map the Hebrew label back to the internal key ('zero', 'pos', 'neg')
+# FIX 1: Pure Hebrew Radio Buttons (No math here to cause flipping)
 radio_options = [
     "פתרון האפס",
     "ענף חיובי",
@@ -63,6 +68,7 @@ selected_label = st.sidebar.radio(
 # Logic to handle selection
 if selected_label == "פתרון האפס":
     # Show the formula clearly BELOW the radio button
+    st.sidebar.info("נוסחה:")
     st.sidebar.latex(r"y = 0")
     
     col1, col2 = st.sidebar.columns(2)
@@ -79,6 +85,7 @@ if selected_label == "פתרון האפס":
         })
 
 elif selected_label == "ענף חיובי":
+    st.sidebar.info("נוסחה (עבור 0 < x < x₀):")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
     # User chooses x0
@@ -97,6 +104,7 @@ elif selected_label == "ענף חיובי":
         })
 
 elif selected_label == "ענף שלילי":
+    st.sidebar.info("נוסחה (עבור x₀ < x < 0):")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
     # User chooses x0
@@ -175,14 +183,14 @@ if len(st.session_state.pieces) > 0:
         
         # FIX 2: Use Columns to physically separate Hebrew text (Right) from Math (Left)
         # This prevents them from mixing and reversing.
-        c_math, c_text = st.columns([0.5, 0.5])
+        c_text, c_math = st.columns([0.6, 0.4])
         
         with c_text:
             # Hebrew text on the right
-            st.markdown(f"**{i+1}. {desc}:**")
+            st.markdown(f"**{i+1}. {desc} :**")
             
         with c_math:
-            # Math formula on the left (aligned right to meet the text)
+            # Math formula on the left (aligned LTR)
             st.latex(label)
 else:
     st.write("אנא הוסף מקטעים מארגז הכלים בצד כדי לבנות את הפתרון.")
