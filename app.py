@@ -107,8 +107,8 @@ elif selected_label == "פתרון האפס":
 
 # OPTION 3: POSITIVE BRANCH (Updated Logic x > x0)
 elif selected_label == "ענף חיובי":
-    st.sidebar.info("נוסחה:")
-    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2 \quad (x > x_0)")
+    st.sidebar.info("נוסחה:", r"0<x<x_0")
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
     x0 = st.sidebar.number_input("נקודת הדבקה (x₀ > 0)", value=1.0, min_value=0.1, step=0.1)
     
