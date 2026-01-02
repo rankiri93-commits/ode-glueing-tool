@@ -71,11 +71,11 @@ selected_label = st.sidebar.radio(
 
 # OPTION 1: INITIAL CONDITION (POINT)
 if selected_label == "תנאי התחלה (נקודה)":
-    st.sidebar.info("הוסף נקודה (x₀, y₀) לגרף:")
+    st.sidebar.info(r"הוסף נקודה $(x_0, y_0)$ לגרף:")
     
     col_pt1, col_pt2 = st.sidebar.columns(2)
-    x_pt = col_pt1.number_input("x₀", value=0.0, step=0.1)
-    y_pt = col_pt2.number_input("y₀", value=0.0, step=0.1)
+    x_pt = col_pt1.number_input(r"$x_0$", value=0.0, step=0.1)
+    y_pt = col_pt2.number_input(r"$y_0$", value=0.0, step=0.1)
     
     if st.sidebar.button("הוסף נקודה"):
         st.session_state.pieces.append({
@@ -83,8 +83,9 @@ if selected_label == "תנאי התחלה (נקודה)":
             "x": x_pt,
             "y": y_pt,
             "color": "green",
-            "label": f"({x_pt}, {y_pt})",
-            "desc": f"תנאי התחלה בנקודה ({x_pt}, {y_pt})"
+            # ROUNDING ADDED HERE (.2f)
+            "label": f"({x_pt:.2f}, {y_pt:.2f})",
+            "desc": f"תנאי התחלה בנקודה "fr"$$({x_pt:.2f}, {y_pt:.2f})$$"
         })
 
 # OPTION 2: ZERO SOLUTION
@@ -93,8 +94,8 @@ elif selected_label == "פתרון האפס":
     st.sidebar.latex(r"y = 0")
     
     col1, col2 = st.sidebar.columns(2)
-    b = col1.number_input("סוף (b)", value=2.0, step=0.1)
-    a = col2.number_input("התחלה (a)", value=-2.0, step=0.1)
+    b = col1.number_input(r"סוף $(b)$", value=2.0, step=0.1)
+    a = col2.number_input(r"התחלה $(a)$", value=-2.0, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
         st.session_state.pieces.append({
@@ -102,42 +103,47 @@ elif selected_label == "פתרון האפס":
             "range": [a, b], 
             "color": "black", 
             "label": r"y=0",
-            "desc": f"y=0 בטווח [{a}, {b}]"
+            # ROUNDING ADDED HERE
+            "desc": fr"$y=0$"" בטווח "fr"$$[{a:.2f}, {b:.2f}]$$"
         })
 
-# OPTION 3: POSITIVE BRANCH (Updated Logic 0 < x < x_0)
+# OPTION 3: POSITIVE BRANCH
 elif selected_label == "ענף חיובי":
-    st.sidebar.info("נוסחה:", r"0 < x < x_0")
+    st.sidebar.info(r"בקטע $(0, x_0)$:")
     st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
-    x0 = st.sidebar.number_input("נקודת הדבקה (0 < x < x_0)", value=1.0, min_value=0.1, step=0.1)
+    x0 = st.sidebar.number_input(r"נקודת הדבקה $(x_0 > 0)$", value=1.0, min_value=0.5, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
-        label = fr"y = x^2(x^3 - {x0}^3)^2"
-        desc = f"ענף חיובי, x₀={x0}"
+        # ROUNDING ADDED HERE
+        label = fr"y = x^2(x^3 - {x0:.2f}^3)^2"
+        desc = f"ענף חיובי, $x_0={x0:.2f}$"
+        
         st.session_state.pieces.append({
             "type": "pos", 
             "x0": x0, 
-            "range": [x0, 2.5], # Plots from x0 to the right edge
+            "range": [0, x0], 
             "color": "blue", 
             "label": label,
             "desc": desc
         })
 
-# OPTION 4: NEGATIVE BRANCH (Updated Logic x < x0)
+# OPTION 4: NEGATIVE BRANCH
 elif selected_label == "ענף שלילי":
-    st.sidebar.info("נוסחה:")
-    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2 \quad (x < x_0)")
+    st.sidebar.info(r"בקטע $(x_0, 0)$:")
+    st.sidebar.latex(r"y = x^2(x^3 - x_0^3)^2")
     
-    x0 = st.sidebar.number_input("נקודת הדבקה (x₀ < 0)", value=-1.0, max_value=-0.1, step=0.1)
+    x0 = st.sidebar.number_input(r"נקודת הדבקה $(x_0 < 0)$", value=-1.0, max_value=-0.5, step=0.1)
     
     if st.sidebar.button("הוסף מקטע"):
-        label = fr"y = x^2(x^3 - ({x0})^3)^2"
-        desc = f"ענף שלילי, x₀={x0}"
+        # ROUNDING ADDED HERE
+        label = fr"y = x^2(x^3 - ({x0:.2f})^3)^2"
+        desc = f"ענף שלילי, $x_0={x0:.2f}$"
+        
         st.session_state.pieces.append({
             "type": "neg", 
             "x0": x0, 
-            "range": [-2.5, x0], # Plots from left edge to x0
+            "range": [x0, 0], 
             "color": "red", 
             "label": label,
             "desc": desc
@@ -152,18 +158,15 @@ if st.sidebar.button("נקה הכל (התחל מחדש)"):
 col_graph, col_empty = st.columns([0.75, 0.25])
 
 with col_graph:
-    # 1. ODE Equation - Cleanly Centered
+    # 1. ODE Equation
     c1, c_eqn, c2 = st.columns([0.1, 0.8, 0.1])
     with c_eqn:
-        st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(0)=0")
+        st.latex(r"xy' = 2y - 6x^4\sqrt{y}, \quad y(x_0)=y_0")
 
     # 2. The Plot
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
 
-    # Dynamic limits: We define a "view window" but allow Y to grow if needed
     ax.set_xlim(-2.5, 2.5)
-    # Remove hardcoded set_ylim to allow auto-scaling for "Take Off" solutions
-    # ax.set_ylim(-0.5, 6) <--- REMOVED to fix visibility issues
     
     ax.axhline(0, color='gray', linestyle='--', linewidth=0.8)
     ax.axvline(0, color='gray', linestyle='--', linewidth=0.8)
@@ -171,12 +174,17 @@ with col_graph:
     ax.set_ylabel("y")
     ax.grid(True, alpha=0.3)
 
+    # Track maximum Y value to scale the graph dynamically
+    current_y_max = 6.0 # Default minimum height
+
     # Plot valid pieces
     for piece in st.session_state.pieces:
         
         # Handle POINTS
         if piece["type"] == "point":
             ax.scatter([piece["x"]], [piece["y"]], color=piece["color"], s=100, zorder=10, label="Initial Condition")
+            if piece["y"] > 0:
+                current_y_max = max(current_y_max, piece["y"])
             continue
 
         # Handle CURVES
@@ -188,16 +196,21 @@ with col_graph:
             ax.plot(x, y, color=piece["color"], linewidth=3, label=plot_label)
             
         elif piece["type"] == "pos":
-            # Plot from x0 to a reasonable max (e.g., 2.5)
-            x = np.linspace(piece["x0"], 2.5, 200)
+            x = np.linspace(0, piece["x0"], 200)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
             ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
+            if len(y) > 0:
+                current_y_max = max(current_y_max, np.max(y))
 
         elif piece["type"] == "neg":
-            # Plot from reasonable min (e.g., -2.5) to x0
-            x = np.linspace(-2.5, piece["x0"], 200)
+            x = np.linspace(piece["x0"], 0, 200)
             y = (x**2) * ((x**3 - piece["x0"]**3)**2)
             ax.plot(x, y, color=piece["color"], linewidth=2, label=plot_label)
+            if len(y) > 0:
+                current_y_max = max(current_y_max, np.max(y))
+
+    # Apply Dynamic Y Limit
+    ax.set_ylim(-0.5, current_y_max * 1.1)
 
     # Unique Legend
     handles, labels = plt.gca().get_legend_handles_labels()
